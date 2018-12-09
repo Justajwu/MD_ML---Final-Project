@@ -160,3 +160,8 @@ for(source in newssource){
   articles <- retrieve_news_json(sources = source)
   if(articles$totalResults != 0)  articles_df <- bind_rows(articles_df,change.source(articles))
 }
+
+require(lubridate)
+
+articles_df <- articles_df %>%
+  mutate(publishedAt = ymd_hms(publishedAt))
