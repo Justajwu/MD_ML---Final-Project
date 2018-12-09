@@ -4,11 +4,12 @@ apiKey_retriever <- function( api_file = 'apiKey.cred' ){
   return( apiKey )
 }
 
-everything_api_call_creator <- function( q = 'jennifer hill',
+
+everything_api_call_creator <- function( q = 'thousand oaks',
                                          sources = NA,
                                          domains = NA,
                                          excludeDomains = NA,
-                                         from = NA, # e.g. '2018-01-01T00:00:00'
+                                         from = '2018-12-07T00:00:00', # e.g. '2018-01-01T00:00:00'
                                          to = NA, # e.g. '2018-10-25T11:00:00'
                                          language = 'en',
                                          sortBy = NA, #e.g. 'popularity'
@@ -131,4 +132,31 @@ retrieve_news_json <- function( api_call_creator = everything_api_call_creator,
   news <- jsonlite::fromJSON( api_call )
   # return 
   return( news )
+}
+
+#abc_articles <- retrieve_news_json(sources = "abc-news")
+#cnn_articles <- retrieve_news_json(sources = "cnn")
+#bbc_articles <- retrieve_news_json(sources = "bbc-news")
+#breitbart_articles <- retrieve_news_json(sources = "breitbart-news")
+#fox_articles <- retrieve_news_json(sources = "fox-news")
+#hill_articles <- retrieve_news_json(sources = "the-hill")
+#huffington_articles <- retrieve_news_json(sources = "the-huffington-post")
+#nyt_articles <- retrieve_news_json(sources = "the-new-york-times")
+#acons_articles <- retrieve_news_json(sources = "the-american-conservative")
+
+#News Sources
+newssource <- c("abc-news","cnn","bbc-news","breitbart-news","fox-news","the-hill","the-huffington-post",
+                "the-new-york-times","the-american-conservative")
+
+#Function to make each pull's data.frame compatible to row bind
+change.source <- function(df){
+  return(cbind(data.frame(source_id = df$articles$source$id,source_name = df$articles$source$name),df$articles[,-1]))
+}
+
+#Create the data tibble
+articles_df <- tibble()
+for(source in newssource){
+  require(dplyr)
+  articles <- retrieve_news_json(sources = source)
+  if(articles$totalResults != 0)  articles_df <- bind_rows(articles_df,change.source(articles))
 }
