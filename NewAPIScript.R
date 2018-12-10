@@ -5,11 +5,11 @@ apiKey_retriever <- function( api_file = 'apiKey.cred' ){
 }
 
 
-everything_api_call_creator <- function( q = 'thousand oaks',
+everything_api_call_creator <- function( q = 'mueller',
                                          sources = NA,
                                          domains = NA,
                                          excludeDomains = NA,
-                                         from = '2018-12-07T00:00:00', # e.g. '2018-01-01T00:00:00'
+                                         from = NA, # e.g. '2018-01-01T00:00:00'
                                          to = NA, # e.g. '2018-10-25T11:00:00'
                                          language = 'en',
                                          sortBy = NA, #e.g. 'popularity'
@@ -154,9 +154,9 @@ change.source <- function(df){
 }
 
 #Create the data tibble
+require(dplyr)
 articles_df <- tibble()
 for(source in newssource){
-  require(dplyr)
   articles <- retrieve_news_json(sources = source)
   if(articles$totalResults != 0)  articles_df <- bind_rows(articles_df,change.source(articles))
 }
@@ -165,3 +165,5 @@ require(lubridate)
 
 articles_df <- articles_df %>%
   mutate(publishedAt = ymd_hms(publishedAt))
+
+write_csv(articles_df,"articles_df.csv")
