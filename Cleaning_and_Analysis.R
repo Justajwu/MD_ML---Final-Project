@@ -88,6 +88,26 @@ bigram_clean <- bigram_df %>%
 # top 20 bigrams
 bigram_clean %>% group_by(source_id) %>% count(bigram) %>% arrange(desc(n)) %>% slice(1:20) %>% View()
 
+# key word appearance function
+wordsearch_binary <- function(keyword = NA, string){
+  if(!is.na(keyword)){
+    as.numeric(any(grep(keyword,string,ignore.case = T)))
+  }
+}
+
+# Get rows with word appearing
+wordsearch <- function(columns,data,keyword){
+  require(dplyr)
+  tempdf <- as.tibble(data)
+  tempdf %>%
+    mutate_at(vars(columns),funs(sapply(.,function(x) wordsearch_binary(keyword,x)))) %>%
+    mutate(rownum = row_number()) %>%
+    filter_at(vars(columns), any_vars(. == 1)) %>%
+    .$rownum
+}
+
+# Get rid of rows with disney websites
+articles_df <- articles_df[-wordsearch(c("url"),articles_df,keyword = "disney"),]
 
 
 # Further cleaning --------------------------------------------------------
