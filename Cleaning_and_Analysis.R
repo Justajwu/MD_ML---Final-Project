@@ -13,7 +13,7 @@ require(tidyverse)
 require(lubridate)
 require(ggplot2)
 require(tidytext)
-library(tm)
+require(randomForest)
 
 raw_df <- read_csv("articles_df.csv")
 data("stop_words")
