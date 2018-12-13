@@ -13,9 +13,13 @@ require(tidyverse)
 require(lubridate)
 require(ggplot2)
 require(tidytext)
+<<<<<<< HEAD
 library(tm)
 library(corpus)
 library(snakecase)
+=======
+require(randomForest)
+>>>>>>> 462885dee372573fc7afe5a4e8e4196e1e7ffe72
 
 raw_df <- read_csv("articles_df.csv")
 data("stop_words")
@@ -59,9 +63,12 @@ articles_df <- articles_df[-wordsearch(c(names(articles_df)),articles_df,keyword
 
 # add column of political leanings
 articles_df <- articles_df %>% 
-  mutate(leanings = case_when(
-    
+  mutate(ideology = case_when(
+    source_id %in% c("bbc-news","the-huffington-post","the-new-york-times") ~ "liberal",
+    source_id %in% c("abc-news","cnn","the-hill") ~ "moderate",
+    source_id %in% c("breitbart-news","fox-news", "the-american-conservative") ~ "conservative"
   ))
+
 
 # make list of proper nouns 
 proper_noun <- c("abc news", "abc","cnn","bbc news", "bbc","breitbart news", "breitbart",
@@ -72,7 +79,11 @@ proper_noun <- c("abc news", "abc","cnn","bbc news", "bbc","breitbart news", "br
 
 ## DF that only contains source id and title
 title_df <- articles_df %>% 
+<<<<<<< HEAD
   select(id,source_id, title) 
+=======
+  select(ideology, title) 
+>>>>>>> 462885dee372573fc7afe5a4e8e4196e1e7ffe72
 
 # remove stop words and source names for unigram df
 title_uni <- title_df %>%
@@ -150,21 +161,21 @@ title_uni %>% count(word) %>% arrange(desc(n)) %>% slice(1:10) %>%
   coord_flip()
 
 # The 10 most frequently used words by source
-title_uni %>% group_by(source_id) %>% count(word) %>% arrange(desc(n)) %>% slice(1:10) %>% View()
+title_uni %>% group_by(ideology) %>% count(word) %>% arrange(desc(n)) %>% slice(1:10) %>% View()
 
 # Count the 20 most frequent stemmed words 
 title_uni %>% mutate(word = SnowballC::wordStem(word)) %>% 
   count(word) %>% arrange(desc(n)) %>% slice(1:20)
 
 # Count the 20 most frequent stemmed words by source
-title_uni %>% group_by(source_id) %>%  mutate(word = SnowballC::wordStem(word)) %>% 
+title_uni %>% group_by(ideology) %>%  mutate(word = SnowballC::wordStem(word)) %>% 
   count(word) %>% arrange(desc(n)) %>% slice(1:20)
 
 
 ## Bigrams
 
 # top 10 bigrams
-title_bi %>% group_by(source_id) %>% count(bigram) %>% arrange(desc(n)) %>% slice(1:20) %>% View()  
+title_bi %>% group_by(ideology) %>% count(bigram) %>% arrange(desc(n)) %>% slice(1:20) %>% View()  
   # ggplot(aes(fct_reorder(bigram, n), n)) +
   # geom_col() +
   # coord_flip() +
@@ -172,7 +183,7 @@ title_bi %>% group_by(source_id) %>% count(bigram) %>% arrange(desc(n)) %>% slic
   # facet_wrap(~ source_id)
 
 ## Trigrams
-title_tri %>% group_by(source_id) %>% count(trigram) %>% arrange(desc(n)) %>% slice(1:20) %>% View()
+title_tri %>% group_by(ideology) %>% count(trigram) %>% arrange(desc(n)) %>% slice(1:20) %>% View()
 
 
 # Sentiment Analysis ------------------------------------------------------
