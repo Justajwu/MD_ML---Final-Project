@@ -14,6 +14,8 @@ require(lubridate)
 require(ggplot2)
 require(tidytext)
 library(tm)
+library(corpus)
+library(snakecase)
 
 raw_df <- read_csv("articles_df.csv")
 data("stop_words")
@@ -21,13 +23,14 @@ data("stop_words")
 
 # Cleaning ----------------------------------------------------------------
 
-# Adding time features
+# Adding time features + row number
 clean_df <- raw_df %>% rename_all(snakecase::to_snake_case) 
 
 articles_df <- clean_df %>%
   mutate(date = date(published_at),
          month = month(date),
-         weekday = weekdays(date)) %>% 
+         weekday = weekdays(date),
+         id = row_number()) %>%
   select(-author)
 
 # we need to get rid of the disney websites that are somehow linked to ABC's API search
@@ -69,7 +72,7 @@ proper_noun <- c("abc news", "abc","cnn","bbc news", "bbc","breitbart news", "br
 
 ## DF that only contains source id and title
 title_df <- articles_df %>% 
-  select(source_id, title) 
+  select(id,source_id, title) 
 
 # remove stop words and source names for unigram df
 title_uni <- title_df %>%
@@ -170,6 +173,77 @@ title_bi %>% group_by(source_id) %>% count(bigram) %>% arrange(desc(n)) %>% slic
 
 ## Trigrams
 title_tri %>% group_by(source_id) %>% count(trigram) %>% arrange(desc(n)) %>% slice(1:20) %>% View()
+
+
+# Sentiment Analysis ------------------------------------------------------
+##Mesh a negative word (ie. "no","-n't","never","not") into the next word (negation of sentiments)
+str_negate <- function(x) {
+  str_split <- unlist(strsplit(x=x, split=" "))
+  is_negative <- grepl("\\bnot\\b|n't|\\bnever\\b|\\bno\\b",str_split,ignore.case=T)
+  negate_me <- append(FALSE,is_negative)[1:length(str_split)]
+  str_split[negate_me==T]<- paste0("not_",str_split[negate_me==T])
+  paste(str_split,collapse=" ")
+}
+
+sentiment_df <- articles_df %>%
+  select(id,source_name,title)
+
+sentiment_df$title_neg <- sapply(sentiment_df$title,str_negate)
+sentiment_df$same <- sentiment_df$title == sentiment_df$title_neg
+
+##Create uni-grams
+# remove stop words and source names for unigram df
+title_neg_uni <- sentiment_df %>%
+  unnest_tokens(word, title_neg) %>% 
+  anti_join(stop_words) %>% 
+  anti_join(proper_noun)
+
+## Create a modified lexicon
+nrc <- sentiments %>%
+  filter(lexicon == "nrc") %>%
+  dplyr::select(word, sentiment)
+
+# Extra words we might want to add to the lexicon
+ExtraWords <- data.frame(
+  word = c("death","die","died","dying","dead"),
+  sentiment = c(rep("sadness",5))
+)
+
+nrc_mod <- nrc %>% 
+  bind_rows(ExtraWords)
+
+nrc_mod <- nrc_mod %>%
+  mutate(word = paste0("not_",word),
+         sentiment = case_when(
+           sentiment == "trust" ~ "fear",
+           sentiment == "fear" ~ "trust",
+           sentiment == "negative" ~ "positive",
+           sentiment == "sadness" ~ "joy",
+           sentiment == "anger" ~ "joy",
+           sentiment == "surprise" ~ "anticipation",
+           sentiment == "positive" ~ "negative",
+           sentiment == "disgust" ~ "approval",
+           sentiment == "joy" ~ "sadness",
+           sentiment == "anticipation" ~ "surprise")
+  ) %>%
+  bind_rows(nrc_mod)
+
+## Sentiment Analysis by source
+sources <- title_neg_uni %>%
+  group_by(source_name,id) %>%
+  mutate(total_words = n()) %>%
+  ungroup() %>%
+  distinct(id,source_name, total_words)
+
+by_source_sentiment <- title_neg_uni %>%
+  inner_join(nrc_mod, by = "word") %>%
+  count(sentiment, id) %>%
+  ungroup() %>%
+  complete(sentiment, id, fill = list(n = 0)) %>%
+  inner_join(sources) %>%
+  group_by(source_name, sentiment, total_words) %>%
+  summarize(words = sum(n)) %>%
+  ungroup()
 
 
 # Further cleaning --------------------------------------------------------
