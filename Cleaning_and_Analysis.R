@@ -272,8 +272,42 @@ by_ideology_sentiment <- title_neg_uni %>%
             percentage = words/total_words) %>%
   ungroup()
 
-# Feature engineering -------------------------------------------------------
 
+## Poisson test between conservative and liberal news outlets
+library(broom)
+sentiment_differences <- by_ideology_sentiment %>%
+  filter(ideology != "moderate") %>%
+  group_by(sentiment) %>%
+  do(tidy(poisson.test(.$words, .$total_words)))
+
+sentiment_differences
+
+# Feature engineering -------------------------------------------------------
+## Create features for number of words per sentiment in each sentence
+ideology_join <- title_neg_uni %>%
+  inner_join(nrc_mod, by = "word") %>%
+  count(sentiment, id) %>%
+  ungroup() %>%
+  complete(sentiment, id, fill = list(n = 0)) %>%
+  inner_join(ideologies) %>%
+  mutate(percent_sentence = n/total_words)
+
+articles_df <- articles_df %>%
+  left_join(spread(ideology_join,sentiment,n,fill = 0))
+
+## Create features for whether headline has word in interested topics
+topics <- c("mueller","migrant","fire","climate","trump","border","ocasio-cortez")
+
+articles_df <- articles_df %>%
+  rowwise() %>%
+  mutate(mueller = wordsearch_binary(topics[1],title),
+         migrant = wordsearch_binary(topics[2],title),
+         fire = wordsearch_binary(topics[3],title),
+         climate = wordsearch_binary(topics[4],title),
+         trump = wordsearch_binary(topics[5],title),
+         border = wordsearch_binary(topics[6],title),
+         ocasio-cortez = wordsearch_binary(topics[7],title)
+         )
 
 
 # Predictive model --------------------------------------------------------
