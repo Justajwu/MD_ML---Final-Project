@@ -296,12 +296,15 @@ ideology_join <- title_neg_uni %>%
   inner_join(nrc_mod, by = "word") %>%
   count(sentiment, id) %>%
   ungroup() %>%
-  complete(sentiment, id, fill = list(n = 0)) %>%
-  inner_join(ideologies) %>%
-  mutate(percent_sentence = n/total_words)
+  complete(sentiment, id, fill = list(n = 0))# %>%
+#  inner_join(ideologies) %>%
+#  mutate(percent_sentence = n/total_words) %>%
+#  ungroup()
 
 articles_df <- articles_df %>%
-  left_join(spread(ideology_join,sentiment,n,fill = 0))
+  left_join(spread(ideology_join,sentiment,n,fill = 0)) %>%
+  mutate_at(vars(unique(ideology_join$sentiment)),funs(replace_na(0)))
+  
 
 ## Create features for whether headline has word in interested topics
 topics <- c("mueller","migrant","fire","climate","trump","border","ocasio-cortez")
@@ -319,20 +322,29 @@ articles_df <- articles_df %>%
 
 
 # Predictive model --------------------------------------------------------
+library(ROCR)
 set.seed(123)
 split_size = floor(nrow(articles_df)/2)
 train_ind <- sample(seq_len(nrow(articles_df)), size = split_size)
-train <- articles_df[train_ind, ]
+articles_df <- articles_df %>%
+  mutate_at(vars(ideology , anger , anticipation , approval , disgust , 
+                 fear , joy , negative , positive , sadness , surprise , trust , mueller , 
+                 migrant , fire , climate , trump , border , ocasiocortez),
+            funs(as.factor))
+articles_df$weekday <- factor(articles_df$weekday)
+
+train <- articles_df[train_ind, ] %>% 
+  select(id,ideology, weekday , anger , anticipation , approval , disgust , 
+           fear , joy , negative , positive , sadness , surprise , trust , mueller , 
+           migrant , fire , climate , trump , border , ocasiocortez)
 test <- articles_df[-train_ind, ]
 
-rf_model <- randomForest(factor(ideology) ~ weekday + total_words + anger + anticipation + approval + disgust + 
-                           fear + joy + negative + positive + sadness + surprise + trust + mueller + 
-                           migrant + fire + climate + trump + border + ocasiocortez, 
-                         data=train, ntree=200,na.action=na.exclude)
+rf_model <- randomForest(ideology ~ ., 
+                         data=train, ntree=200)
 
 # compute AUC of this model on the test dataset  
 test$predicted.probability.rf <- predict(rf_model, newdata=test, type="prob")[,2]
-test$ideo.outcome <- predict(rf_model, newdata=test, type="response")[,2]
+test$ideo.outcome <- predict(rf_model, newdata=test, type="response")
 test.pred.rf <- prediction(test$predicted.probability.rf, test$ideology)
 test.perf.rf <- performance(test.pred.rf, "auc")
 auc <- 100*test.perf.rf@y.values[[1]]
