@@ -249,7 +249,8 @@ by_source_sentiment <- title_neg_uni %>%
   inner_join(sources) %>%
   group_by(source_name, sentiment) %>%
   summarize(words = sum(n),
-            total_words = sum(total_words)) %>%
+            total_words = sum(total_words),
+            percentage = words/total_words) %>%
   ungroup()
 
 ## Sentiment Analysis by ideology
@@ -267,7 +268,8 @@ by_ideology_sentiment <- title_neg_uni %>%
   inner_join(ideologies) %>%
   group_by(ideology, sentiment) %>%
   summarize(words = sum(n),
-            total_words = sum(total_words)) %>%
+            total_words = sum(total_words),
+            percentage = words/total_words) %>%
   ungroup()
 
 # Feature engineering -------------------------------------------------------
