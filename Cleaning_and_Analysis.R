@@ -17,6 +17,8 @@ library(tm)
 library(corpus)
 library(snakecase)
 require(randomForest)
+library(ROCR)
+library(broom)
 
 
 raw_df <- read_csv("articles_df.csv")
@@ -182,11 +184,11 @@ title_bi %>% group_by(ideology) %>% count(bigram) %>% arrange(desc(n)) %>% slice
   # labs(x = NULL)+
   # facet_wrap(~ source_id)
 
-# document term matrix
-hundred.most.common.bi= title_bi %>% count(bigram) %>% arrange(desc(n)) %>% slice(1:100)
-
-## Trigrams
-title_tri %>% group_by(ideology) %>% count(trigram) %>% arrange(desc(n)) %>% slice(1:20) %>% View()
+# document term matrix (should we include???)
+# hundred.most.common.bi= title_bi %>% count(bigram) %>% arrange(desc(n)) %>% slice(1:100)
+# 
+# ## Trigrams
+# title_tri %>% group_by(ideology) %>% count(trigram) %>% arrange(desc(n)) %>% slice(1:20) %>% View()
 
 
 # Sentiment Analysis ------------------------------------------------------
@@ -261,6 +263,17 @@ by_source_sentiment <- title_neg_uni %>%
             percentage = words/total_words) %>%
   ungroup()
 
+# top 10 sentiments by source
+by_source_sentiment %>% group_by(source_name, sentiment) %>% arrange(desc(percentage)) %>% slice(1:10) %>% View()
+# plots
+by_source_plot <- by_source_sentiment %>% group_by(source_name, sentiment) %>% 
+  arrange(desc(percentage)) %>% slice(1:10) %>% 
+  ggplot(aes(x= sentiment)) +
+  geom_bar(aes(y = percentage), stat = "identity")+
+  scale_y_continuous(labels=scales::percent)+
+  coord_flip()+
+  facet_wrap(~source_name)
+
 ## Sentiment Analysis by ideology
 ideologies <- title_neg_uni %>%
   group_by(ideology,id) %>%
@@ -280,9 +293,18 @@ by_ideology_sentiment <- title_neg_uni %>%
             percentage = words/total_words) %>%
   ungroup()
 
+# top 10 sentiments by ideology
+by_ideology_sentiment %>% group_by(ideology, sentiment) %>% arrange(desc(percentage)) %>% slice(1:10) %>% View()
+# plots
+by_ideo_plot <- by_ideology_sentiment %>% group_by(ideology, sentiment) %>% 
+  arrange(desc(percentage)) %>% slice(1:10) %>% 
+  ggplot(aes(x= sentiment)) +
+  geom_bar(aes(y = percentage), stat = "identity")+
+  scale_y_continuous(labels=scales::percent)+
+  coord_flip()+
+  facet_wrap(~ideology)
 
 ## Poisson test between conservative and liberal news outlets
-library(broom)
 sentiment_differences <- by_ideology_sentiment %>%
   filter(ideology != "moderate") %>%
   group_by(sentiment) %>%
@@ -322,22 +344,21 @@ articles_df <- articles_df %>%
 
 
 # Predictive model --------------------------------------------------------
-library(ROCR)
+
 set.seed(123)
 split_size = floor(nrow(articles_df)/2)
 train_ind <- sample(seq_len(nrow(articles_df)), size = split_size)
-articles_df <- articles_df %>%
-  mutate_at(vars(ideology , anger , anticipation , approval , disgust , 
-                 fear , joy , negative , positive , sadness , surprise , trust , mueller , 
-                 migrant , fire , climate , trump , border , ocasiocortez),
-            funs(as.factor))
-articles_df$weekday <- factor(articles_df$weekday)
+prep_df <- articles_df %>%
+  select(id,ideology, weekday, anger, anticipation, approval, disgust , 
+                    fear, joy, negative, positive, sadness, surprise, trust, mueller, 
+                    migrant, fire, climate, trump, border, ocasiocortez) %>% 
+  transmute_all(as.factor)
 
-train <- articles_df[train_ind, ] %>% 
-  select(id,ideology, weekday , anger , anticipation , approval , disgust , 
-           fear , joy , negative , positive , sadness , surprise , trust , mueller , 
-           migrant , fire , climate , trump , border , ocasiocortez)
-test <- articles_df[-train_ind, ]
+train <- prep_df[train_ind, ] 
+test <- prep_df[-train_ind, ]
+
+# see if there's any row wihtout any sentiments
+train %>% mutate()
 
 rf_model <- randomForest(ideology ~ ., 
                          data=train, ntree=200)
