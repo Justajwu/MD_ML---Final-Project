@@ -19,6 +19,7 @@ library(snakecase)
 require(randomForest)
 library(ROCR)
 library(broom)
+library(data.table)
 
 
 raw_df <- read_csv("articles_df.csv")
@@ -342,57 +343,81 @@ articles_df <- articles_df %>%
          ocasiocortez = wordsearch_binary(topics[7],title)
          )
 
+prep_df <- articles_df %>%
+  transmute(ideology, 
+            weekday = as.factor(weekday), 
+            anger = as.factor(anger), 
+            anticipation = as.factor(anticipation), 
+            approval = as.factor(approval), 
+            disgust = as.factor(disgust), 
+            fear = as.factor(fear), 
+            joy = as.factor(joy), 
+            negative = as.factor(negative), 
+            positive = as.factor(positive), 
+            sadness = as.factor(sadness), 
+            surprise = as.factor(surprise), 
+            trust = as.factor(trust), 
+            mueller = as.factor(mueller), 
+            migrant = as.factor(migrant), 
+            fire = as.factor(fire), 
+            climate = as.factor(climate), 
+            trump = as.factor(trump), 
+            border = as.factor(border), 
+            ocasiocortez = as.factor(ocasiocortez))
+
+prep_df$weekday <- as.factor(prep_df$weekday)
+prep_df$mueller <- as.factor(prep_df$mueller)
+prep_df$migrant <- as.factor(prep_df$migrant)
+prep_df$fire <- as.factor(prep_df$fire)
+prep_df$climate <- as.factor(prep_df$climate)
+prep_df$trump <- as.factor(prep_df$trump)
+prep_df$border <- as.factor(prep_df$border)
+prep_df$ocasiocortez <- as.factor(prep_df$ocasiocortez)
 
 # Predictive model --------------------------------------------------------
 
 set.seed(123)
 split_size = floor(nrow(articles_df)/2)
 train_ind <- sample(seq_len(nrow(articles_df)), size = split_size)
-prep_df <- articles_df %>%
-  select(id,ideology, weekday, anger, anticipation, approval, disgust , 
-                    fear, joy, negative, positive, sadness, surprise, trust, mueller, 
-                    migrant, fire, climate, trump, border, ocasiocortez) %>% 
-  transmute_all(as.factor)
 
 train <- prep_df[train_ind, ] 
 test <- prep_df[-train_ind, ]
 
-# see if there's any row wihtout any sentiments
-train %>% mutate()
+rf_model <- randomForest(ideology ~ ., data=train, ntree=200)
+rf_model
+# randomForest(formula = ideology ~ ., data = train, ntree = 200) 
+# Type of random forest: classification
+# Number of trees: 200
+# No. of variables tried at each split: 4
+# 
+# OOB estimate of  error rate: 60.78%
+# Confusion matrix:
+#                 conservative liberal moderate class.error
+# conservative           31     887      171   0.9715335
+# liberal                12    1126      173   0.1411137
+# moderate               12     980      285   0.7768207
 
-rf_model <- randomForest(ideology ~ ., 
-                         data=train, ntree=200)
+test$ideo.outcome <- as.vector(predict(rf_model, newdata=test, type="response"))
+test$predicted.probability <- predict(rf_model, newdata=test, type="prob")
+test$predicted.probability <- apply(as.data.frame(test$predicted.probability), 1, FUN=max)
 
-# compute AUC of this model on the test dataset  
-test$predicted.probability.rf <- predict(rf_model, newdata=test, type="prob")[,2]
-test$ideo.outcome <- predict(rf_model, newdata=test, type="response")
-test.pred.rf <- prediction(test$predicted.probability.rf, test$ideology)
-test.perf.rf <- performance(test.pred.rf, "auc")
-auc <- 100*test.perf.rf@y.values[[1]]
-cat('the auc score is ', 100*test.perf.rf@y.values[[1]], "\n") 
+# accuracy
+test <- test %>% mutate(accuracy = as.double(ifelse(ideo.outcome == ideology, 1L, 0L))) 
 
-# recall and precision for a threshold of 0.5
-threshold <- 0.5
-test <- test %>% mutate(prediction = case_when(
-  predicted.probability < threshold ~ F,
-  predicted.probability >= threshold ~ T
-))
-    # need to figure out if the true cases can be represented by ideology = ideo.outcome
-cat('At the threshold of ', threshold, ' the precision is ', 
-    100*nrow(filter(test, prediction==T, ideology = ideo.outcome))/nrow(filter(test, prediction==T)),
-    '%, and the recall is ', 100*nrow(filter(test, prediction==T, ideology = ideo.outcome))/nrow(filter(test, ideology = ideo.outcome)),
-    '%\n')
+cat("the accuracy of our model is", 
+    100*nrow(filter(test, accuracy == 1L))/nrow(test),"%\n")
 
 # performance plot
-plot.data.rf <- test %>% arrange(desc(predicted.probability.rf)) %>% 
-  mutate(numrank = row_number(), percent.ideology = cumsum(ideology)/numrank,
-         method = rep("Random Forest",n())) %>% 
-  select(numrank, percent.ideology,method)
+# plot.data.rf <- test %>% arrange(desc(predicted.probability)) %>% 
+#   mutate(numrank = row_number(), percent.ideology = cumsum(accuracy)/numrank,
+#          method = rep("Random Forest",n())) %>% 
+#   select(numrank, percent.ideology, method)
 
-# calibration?
+# calibration
+
+# NOTE: computing the Volumn Under the Curve (VUC) is beyond our capacity
 
 
-# Subsetting --------------------------------------------------------------
 
 
 
