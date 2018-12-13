@@ -83,7 +83,8 @@ title_df <- articles_df %>%
 
 # remove stop words and source names for unigram df
 title_uni <- title_df %>%
-  unnest_tokens(word, title) %>% 
+  unnest_tokens(word, title) %>%
+  mutate(word = SnowballC::wordStem(word)) %>% 
   anti_join(stop_words) %>% 
   anti_join(proper_noun)
 
@@ -156,16 +157,14 @@ title_uni %>% count(word) %>% arrange(desc(n)) %>% slice(1:10) %>%
   xlab(NULL) +
   coord_flip()
 
-# The 10 most frequently used words by source
-title_uni %>% group_by(ideology) %>% count(word) %>% arrange(desc(n)) %>% slice(1:10) %>% View()
+# The 20 most frequently used words by ideology
+title_uni %>% group_by(ideology) %>% count(word) %>% arrange(desc(n)) %>% slice(1:20) %>% View()
 
-# Count the 20 most frequent stemmed words 
-title_uni %>% mutate(word = SnowballC::wordStem(word)) %>% 
-  count(word) %>% arrange(desc(n)) %>% slice(1:20)
-
-# Count the 20 most frequent stemmed words by source
-title_uni %>% group_by(ideology) %>%  mutate(word = SnowballC::wordStem(word)) %>% 
-  count(word) %>% arrange(desc(n)) %>% slice(1:20)
+unigram_tf_idf <- title_uni %>%
+  count(ideology, word) %>%
+  bind_tf_idf(word, ideology, n) %>%
+  arrange(desc(tf_idf)) %>% slice(1:20)
+unigram_tf_idf
 
 
 ## Bigrams
