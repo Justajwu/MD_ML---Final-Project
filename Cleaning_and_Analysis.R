@@ -252,11 +252,6 @@ by_source_sentiment <- title_neg_uni %>%
   summarize(words = sum(n)) %>%
   ungroup()
 
-
-# Further cleaning --------------------------------------------------------
-
-
-
 # Feature engineering -------------------------------------------------------
 
 
