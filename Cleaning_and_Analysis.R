@@ -264,7 +264,7 @@ by_ideology_sentiment <- title_neg_uni %>%
   count(sentiment, id) %>%
   ungroup() %>%
   complete(sentiment, id, fill = list(n = 0)) %>%
-  inner_join(sources) %>%
+  inner_join(ideologies) %>%
   group_by(ideology, sentiment) %>%
   summarize(words = sum(n),
             total_words = sum(total_words)) %>%
