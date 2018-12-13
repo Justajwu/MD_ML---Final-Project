@@ -160,12 +160,17 @@ title_uni %>% count(word) %>% arrange(desc(n)) %>% slice(1:10) %>%
 # The 20 most frequently used words by ideology
 title_uni %>% group_by(ideology) %>% count(word) %>% arrange(desc(n)) %>% slice(1:20) %>% View()
 
+# calcute tf_idf 
 unigram_tf_idf <- title_uni %>%
   count(ideology, word) %>%
   bind_tf_idf(word, ideology, n) %>%
   arrange(desc(tf_idf)) %>% slice(1:20)
 unigram_tf_idf
 
+# document term matrix
+hundred.most.common.uni= title_uni %>% count(word) %>% arrange(desc(n)) %>% slice(1:100)
+w=title_uni %>% count(ideology, word) %>% cast_dtm(ideology, word, n)
+top_dtm_uni= as.matrix(w[1:dim(w)[1], intersect(dimnames(w)[[2]], hundred.most.common.uni$word)])
 
 ## Bigrams
 
@@ -176,6 +181,9 @@ title_bi %>% group_by(ideology) %>% count(bigram) %>% arrange(desc(n)) %>% slice
   # coord_flip() +
   # labs(x = NULL)+
   # facet_wrap(~ source_id)
+
+# document term matrix
+hundred.most.common.bi= title_bi %>% count(bigram) %>% arrange(desc(n)) %>% slice(1:100)
 
 ## Trigrams
 title_tri %>% group_by(ideology) %>% count(trigram) %>% arrange(desc(n)) %>% slice(1:20) %>% View()
@@ -277,7 +285,41 @@ by_ideology_sentiment <- title_neg_uni %>%
 
 
 # Predictive model --------------------------------------------------------
+set.seed(123)
+split_size = floor(nrow(articles_df)/2)
+train <- articles_df %>% slice(1:split_size)
+test <- articles_df %>% slice(split_size+1:n())
 
+rf_model <- randomForest(, 
+                         data=train, ntree=200)
+
+# compute AUC of this model on the test dataset  
+test$predicted.probability.rf <- predict(rf_model, newdata=test, type="prob")[,2]
+test$ideo.outcome <- predict(rf_model, newdata=test, type="response")[,2]
+test.pred.rf <- prediction(test$predicted.probability.rf, test$ideology)
+test.perf.rf <- performance(test.pred.rf, "auc")
+auc <- 100*test.perf.rf@y.values[[1]]
+cat('the auc score is ', 100*test.perf.rf@y.values[[1]], "\n") 
+
+# recall and precision for a threshold of 0.5
+threshold <- 0.5
+test <- test %>% mutate(prediction = case_when(
+  predicted.probability < threshold ~ F,
+  predicted.probability >= threshold ~ T
+))
+    # need to figure out if the true cases can be represented by ideology = ideo.outcome
+cat('At the threshold of ', threshold, ' the precision is ', 
+    100*nrow(filter(test, prediction==T, ideology = ideo.outcome))/nrow(filter(test, prediction==T)),
+    '%, and the recall is ', 100*nrow(filter(test, prediction==T, ideology = ideo.outcome))/nrow(filter(test, ideology = ideo.outcome)),
+    '%\n')
+
+# performance plot
+plot.data.rf <- test %>% arrange(desc(predicted.probability.rf)) %>% 
+  mutate(numrank = row_number(), percent.ideology = cumsum(ideology)/numrank,
+         method = rep("Random Forest",n())) %>% 
+  select(numrank, percent.ideology,method)
+
+# calibration?
 
 
 # Subsetting --------------------------------------------------------------
