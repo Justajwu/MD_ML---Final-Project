@@ -13,13 +13,11 @@ require(tidyverse)
 require(lubridate)
 require(ggplot2)
 require(tidytext)
-<<<<<<< HEAD
 library(tm)
 library(corpus)
 library(snakecase)
-=======
 require(randomForest)
->>>>>>> 462885dee372573fc7afe5a4e8e4196e1e7ffe72
+
 
 raw_df <- read_csv("articles_df.csv")
 data("stop_words")
@@ -67,7 +65,8 @@ articles_df <- articles_df %>%
     source_id %in% c("bbc-news","the-huffington-post","the-new-york-times") ~ "liberal",
     source_id %in% c("abc-news","cnn","the-hill") ~ "moderate",
     source_id %in% c("breitbart-news","fox-news", "the-american-conservative") ~ "conservative"
-  ))
+  )) %>% 
+  mutate(ideology = as.factor(ideology))
 
 
 # make list of proper nouns 
@@ -79,11 +78,8 @@ proper_noun <- c("abc news", "abc","cnn","bbc news", "bbc","breitbart news", "br
 
 ## DF that only contains source id and title
 title_df <- articles_df %>% 
-<<<<<<< HEAD
-  select(id,source_id, title) 
-=======
-  select(ideology, title) 
->>>>>>> 462885dee372573fc7afe5a4e8e4196e1e7ffe72
+  select(id,ideology, title) 
+
 
 # remove stop words and source names for unigram df
 title_uni <- title_df %>%
