@@ -200,10 +200,10 @@ str_negate <- function(x) {
 }
 
 sentiment_df <- articles_df %>%
-  select(id,source_name,title,ideology)
+  select(id,source_name,title,ideology) %>%
+  rowwise() %>%
+  mutate(title_neg = str_negate(title))
 
-sentiment_df$title_neg <- sapply(sentiment_df$title,str_negate)
-sentiment_df$same <- sentiment_df$title == sentiment_df$title_neg
 
 ##Create uni-grams
 # remove stop words and source names for unigram df
@@ -314,18 +314,21 @@ articles_df <- articles_df %>%
          climate = wordsearch_binary(topics[4],title),
          trump = wordsearch_binary(topics[5],title),
          border = wordsearch_binary(topics[6],title),
-         ocasio-cortez = wordsearch_binary(topics[7],title)
+         ocasiocortez = wordsearch_binary(topics[7],title)
          )
 
 
 # Predictive model --------------------------------------------------------
 set.seed(123)
 split_size = floor(nrow(articles_df)/2)
-train <- articles_df %>% slice(1:split_size)
-test <- articles_df %>% slice(split_size+1:n())
+train_ind <- sample(seq_len(nrow(articles_df)), size = split_size)
+train <- articles_df[train_ind, ]
+test <- articles_df[-train_ind, ]
 
-rf_model <- randomForest(, 
-                         data=train, ntree=200)
+rf_model <- randomForest(factor(ideology) ~ weekday + total_words + anger + anticipation + approval + disgust + 
+                           fear + joy + negative + positive + sadness + surprise + trust + mueller + 
+                           migrant + fire + climate + trump + border + ocasiocortez, 
+                         data=train, ntree=200,na.action=na.exclude)
 
 # compute AUC of this model on the test dataset  
 test$predicted.probability.rf <- predict(rf_model, newdata=test, type="prob")[,2]
