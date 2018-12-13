@@ -52,10 +52,17 @@ wordsearch <- function(columns,data,keyword){
 }
 
 # Get rid of rows with disney websites
-articles_df <- articles_df[-wordsearch(c("url"),articles_df,keyword = "disney"),]
+articles_df <- articles_df[-wordsearch(c(names(articles_df)),articles_df,keyword = "disney"),]
+
+# add column of political leanings
+articles_df <- articles_df %>% 
+  mutate(leanings = case_when(
+    
+  ))
 
 # make list of proper nouns 
-proper_noun <- c("abc news","cnn","bbc news","breitbart","fox news","the hill","huffington post",
+proper_noun <- c("abc news", "abc","cnn","bbc news", "bbc","breitbart news", "breitbart",
+                 "fox news", "fox","the hill", "hill","huffington post",
                  "new york times","american conservative", "news") %>% 
   as_tibble() %>% 
   rename("word" = "value")
@@ -71,10 +78,10 @@ title_uni <- title_df %>%
   anti_join(proper_noun)
 
 # Bigrams 
-# lemmatized  
+ 
 title_bi <- title_df %>% 
   unnest_tokens(bigram, title, token = 'ngrams', n=2)
-
+# lemmatized 
 title_bi <- title_bi %>% 
   separate(bigram, c("word1", "word2"), sep = " ") %>% 
   mutate(word1 = SnowballC::wordStem(word1),
@@ -85,17 +92,34 @@ title_bi <- title_bi %>%
          !word2 %in% proper_noun$word) %>% 
   unite(bigram, word1, word2, sep = " ")
 
+# Trigrams
+title_tri <- title_df %>% 
+  unnest_tokens(trigram, title, token = 'ngrams', n=3)
+
+title_tri <- title_tri %>% 
+  separate(trigram, c("word1", "word2", "word3"), sep = " ") %>% 
+  mutate(word1 = SnowballC::wordStem(word1),
+         word2 = SnowballC::wordStem(word2),
+         word3 = SnowballC::wordStem(word3)) %>% 
+  filter(!word1 %in% stop_words$word,
+         !word1 %in% proper_noun$word,
+         !word3 %in% proper_noun$word) %>%
+  filter(!word2 %in% stop_words$word,
+         !word2 %in% proper_noun$word,
+         !word3 %in% proper_noun$word) %>% 
+  unite(trigram, word1, word2, word3, sep = " ")
 
 
 # Exploratory -------------------------------------------------------------
 
-## Number of articles per news source in the month
+## Articles
+# Number of articles per news source in the month
 articles_df %>%
   ggplot() +
   geom_bar(aes(x = source_name)) +
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
-## Number of articles by Newssource by time
+# Number of articles by Newssource by time
 newssource <- c("abc-news","cnn","bbc-news","breitbart-news","fox-news","the-hill","the-huffington-post",
                 "the-new-york-times","the-american-conservative")
 
@@ -107,11 +131,13 @@ articles_df %>%
        color = "") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
-## Does image matter 
+# Does image matter 
 articles_df %>%
   mutate(image = ifelse(is.na(url_to_image), 0, 1)) %>% 
   group_by(source_name, image) %>% 
   count() 
+
+## Unigram
 
 # The 10 most frequently used words
 title_uni %>% count(word) %>% arrange(desc(n)) %>% slice(1:10) %>% 
@@ -132,11 +158,18 @@ title_uni %>% group_by(source_id) %>%  mutate(word = SnowballC::wordStem(word)) 
   count(word) %>% arrange(desc(n)) %>% slice(1:20)
 
 
+## Bigrams
 
-# top 20 bigrams
-bigram_clean %>% group_by(source_id) %>% count(bigram) %>% arrange(desc(n)) %>% slice(1:20) %>% View()
+# top 10 bigrams
+title_bi %>% group_by(source_id) %>% count(bigram) %>% arrange(desc(n)) %>% slice(1:20) %>% View()  
+  # ggplot(aes(fct_reorder(bigram, n), n)) +
+  # geom_col() +
+  # coord_flip() +
+  # labs(x = NULL)+
+  # facet_wrap(~ source_id)
 
-
+## Trigrams
+title_tri %>% group_by(source_id) %>% count(trigram) %>% arrange(desc(n)) %>% slice(1:20) %>% View()
 
 
 # Further cleaning --------------------------------------------------------
