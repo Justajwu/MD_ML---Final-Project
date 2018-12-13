@@ -193,7 +193,7 @@ str_negate <- function(x) {
 }
 
 sentiment_df <- articles_df %>%
-  select(id,source_name,title)
+  select(id,source_name,title,ideology)
 
 sentiment_df$title_neg <- sapply(sentiment_df$title,str_negate)
 sentiment_df$same <- sentiment_df$title == sentiment_df$title_neg
@@ -248,8 +248,27 @@ by_source_sentiment <- title_neg_uni %>%
   ungroup() %>%
   complete(sentiment, id, fill = list(n = 0)) %>%
   inner_join(sources) %>%
-  group_by(source_name, sentiment, total_words) %>%
-  summarize(words = sum(n)) %>%
+  group_by(source_name, sentiment) %>%
+  summarize(words = sum(n),
+            total_words = sum(total_words)) %>%
+  ungroup()
+
+## Sentiment Analysis by ideology
+ideologies <- title_neg_uni %>%
+  group_by(ideology,id) %>%
+  mutate(total_words = n()) %>%
+  ungroup() %>%
+  distinct(id,ideology, total_words)
+
+by_ideology_sentiment <- title_neg_uni %>%
+  inner_join(nrc_mod, by = "word") %>%
+  count(sentiment, id) %>%
+  ungroup() %>%
+  complete(sentiment, id, fill = list(n = 0)) %>%
+  inner_join(sources) %>%
+  group_by(ideology, sentiment) %>%
+  summarize(words = sum(n),
+            total_words = sum(total_words)) %>%
   ungroup()
 
 # Feature engineering -------------------------------------------------------
