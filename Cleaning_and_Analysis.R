@@ -8,7 +8,7 @@
 
 # Setup -------------------------------------------------------------------
 
-#source("NewAPIScript.R")
+#source("NewsAPI Pull Script.R")
 require(tidyverse)
 require(lubridate)
 require(ggplot2)
