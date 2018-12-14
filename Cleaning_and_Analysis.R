@@ -408,37 +408,39 @@ test <- test %>% mutate(accuracy = as.double(ifelse(ideo.outcome == ideology, 1L
 liberal.tp <- nrow(filter(test, ideo.outcome == "liberal", ideology == "liberal"))
 liberal.tn <- nrow(filter(test, !ideo.outcome == "liberal", !ideology == "liberal"))
 liberal.accuracy <- test %>% 
-  summarise(accuracy = (liberal.tp+liberal.tn)/nrow(test))
+  summarise(lib.accuracy = (liberal.tp+liberal.tn)/nrow(test))
 
 #moderate
 moderate.tp <- nrow(filter(test, ideo.outcome == "moderate", ideology == "moderate"))
 moderate.tn <- nrow(filter(test, !ideo.outcome == "moderate", !ideology == "moderate"))
 moderate.accuracy <- test %>% 
-  summarise(accuracy = (moderate.tp+moderate.tn)/nrow(test))
+  summarise(mod.accuracy = (moderate.tp+moderate.tn)/nrow(test))
 
 #conservative
 conservative.tp <- nrow(filter(test, ideo.outcome == "conservative", ideology == "conservative"))
 conservative.tn <- nrow(filter(test, !ideo.outcome == "conservative", !ideology == "conservative"))
 conservative.accuracy <- test %>% 
-  summarise(accuracy = (conservative.tp+conservative.tn)/nrow(test))
+  summarise(con.accuracy = (conservative.tp+conservative.tn)/nrow(test))
 
+overall.accuracy <- bind_cols(liberal.accuracy,moderate.accuracy,conservative.accuracy)
+overall.accuracy
 
 ## Precision (in percentage)
 #liberal
 liberal.precision <- test %>%
-  summarise(precision = 
+  summarise(lib.precision = 
       100*nrow(filter(test, ideo.outcome == "liberal", ideology == "liberal"))/nrow(filter(test, ideo.outcome == "liberal"))
           )
 
 #moderate
 moderate.precision <- test %>%
-  summarise(precision = 
+  summarise(mod.precision = 
       100*nrow(filter(test, ideo.outcome == "moderate", ideology == "moderate"))/nrow(filter(test, ideo.outcome == "moderate"))
   )
 
 #conservative
 conservative.precision <- test %>%
-  summarise(precision = 
+  summarise(con.precision = 
   100*nrow(filter(test, ideo.outcome == "conservative", ideology == "conservative"))/nrow(filter(test, ideo.outcome == "conservative"))
   )
 
@@ -448,46 +450,25 @@ overall.precision
 
 ## Recall (in percentage)
 #liberal
-liberal.FN <- test %>% filter(ideo.outcome != "liberal", accuracy != 1) %>% nrow()
-liberal.recall <- test %>%
-  filter(ideology == "liberal") %>%
-  summarise(recall = sum(accuracy)/(sum(accuracy) + liberal.FN))
-
 liberal.recall <- test %>% 
   summarise(
-    precision = 100*nrow(filter(test, ideo.outcome== "liberal", ideology == "liberal"))/nrow(filter(test, ideology == "liberal"))
+    lib.recall = 100*nrow(filter(test, ideo.outcome== "liberal", ideology == "liberal"))/nrow(filter(test, ideology == "liberal"))
   )
 
 #moderate
-moderate.FN <- test %>% filter(ideology != "moderate", accuracy != 1) %>% nrow()
-moderate.recall <- test %>%
-  filter(ideology == "moderate") %>%
-  summarise(recall = sum(accuracy)/(sum(accuracy) + moderate.FN))
-
 moderate.recall <- test %>% 
   summarise(
-    precision = 100*nrow(filter(test, ideo.outcome== "moderate", ideology == "moderate"))/nrow(filter(test, ideology == "moderate"))
+    mod.recall = 100*nrow(filter(test, ideo.outcome== "moderate", ideology == "moderate"))/nrow(filter(test, ideology == "moderate"))
   )
-
 
 #conservative
-conservative.FN <- test %>% filter(ideology != "conservative", accuracy != 1) %>% nrow()
-conservative.recall <- test %>%
-  filter(ideology == "conservative") %>%
-  summarise(recall = sum(accuracy)/(sum(accuracy) + conservative.FN))
-
 conservative.recall <- test %>% 
   summarise(
-    precision = 100*nrow(filter(test, ideo.outcome== "conservative", ideology == "conservative"))/nrow(filter(test, ideology == "conservative"))
+    con.recall = 100*nrow(filter(test, ideo.outcome== "conservative", ideology == "conservative"))/nrow(filter(test, ideology == "conservative"))
   )
-
 
 overall.recall <- bind_cols(liberal.recall,moderate.recall,conservative.recall)
 overall.recall
-
-
-
-
 
 
 
