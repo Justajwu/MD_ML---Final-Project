@@ -265,7 +265,7 @@ by_source_sentiment <- title_neg_uni %>%
   ungroup()
 
 # top 10 sentiments by source
-by_source_sentiment %>% group_by(source_name, sentiment) %>% arrange(desc(percentage)) %>% slice(1:10) %>% View()
+by_source_sentiment %>% group_by(source_name, sentiment) %>% arrange(desc(percentage)) %>% slice(1:10)
 # plots
 by_source_plot <- by_source_sentiment %>% group_by(source_name, sentiment) %>% 
   arrange(desc(percentage)) %>% slice(1:10) %>% 
