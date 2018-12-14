@@ -7,7 +7,6 @@ apiKey_retriever <- function( api_file = 'apiKey.cred' ){
   return( apiKey )
 }
 
-tempapi <- "ccd45384f7904e07bca1816d7ef5a4ce"
 
 everything_api_call_creator <- function( q = NA,
                                          sources = NA,
@@ -19,7 +18,7 @@ everything_api_call_creator <- function( q = NA,
                                          sortBy = 'popularity', #e.g. 'popularity'
                                          pageSize = 30,
                                          page = NA,
-                                         apiKey = tempapi ){
+                                         apiKey = apiKey_retriever() ){
   require( utils )
   api_call <- 'https://newsapi.org/v2/everything'
   first_set <- F
