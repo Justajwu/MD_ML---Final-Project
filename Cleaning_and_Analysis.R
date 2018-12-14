@@ -179,17 +179,9 @@ top_dtm_uni= as.matrix(w[1:dim(w)[1], intersect(dimnames(w)[[2]], hundred.most.c
 
 # top 10 bigrams
 title_bi %>% group_by(ideology) %>% count(bigram) %>% arrange(desc(n)) %>% slice(1:20) %>% View()  
-  # ggplot(aes(fct_reorder(bigram, n), n)) +
-  # geom_col() +
-  # coord_flip() +
-  # labs(x = NULL)+
-  # facet_wrap(~ source_id)
 
-# document term matrix (should we include???)
-# hundred.most.common.bi= title_bi %>% count(bigram) %>% arrange(desc(n)) %>% slice(1:100)
-# 
-# ## Trigrams
-# title_tri %>% group_by(ideology) %>% count(trigram) %>% arrange(desc(n)) %>% slice(1:20) %>% View()
+## Trigrams
+title_tri %>% group_by(ideology) %>% count(trigram) %>% arrange(desc(n)) %>% slice(1:20) %>% View()
 
 
 # Sentiment Analysis ------------------------------------------------------
