@@ -401,8 +401,72 @@ test$ideo.outcome <- as.vector(predict(rf_model, newdata=test, type="response"))
 test$predicted.probability <- predict(rf_model, newdata=test, type="prob")
 test$predicted.probability <- apply(as.data.frame(test$predicted.probability), 1, FUN=max)
 
-# accuracy
+## accuracy
 test <- test %>% mutate(accuracy = as.double(ifelse(ideo.outcome == ideology, 1L, 0L))) 
+
+#liberal
+liberal.accuracy <- test %>%
+  filter(ideology == "liberal") %>%
+  summarise(accuracy = mean(accuracy))
+
+#moderate
+moderate.accuracy <- test %>%
+  filter(ideology == "moderate") %>%
+  summarise(accuracy = mean(accuracy))
+
+#conservative
+conservative.accuracy <- test %>%
+  filter(ideology == "conservative") %>%
+  summarise(accuracy = mean(accuracy))
+
+overall.accuracy <- bind_cols(liberal.accuracy,moderate.accuracy,conservative.accuracy)
+overall.accuracy
+
+## Precision
+#liberal
+liberal.FP <- test %>% filter(ideo.outcome == "liberal", accuracy != 1) %>% nrow()
+liberal.precision <- test %>%
+  filter(ideology == "liberal") %>%
+  summarise(precision = sum(accuracy)/(sum(accuracy) + liberal.FP))
+
+#moderate
+moderate.FP <- test %>% filter(ideo.outcome == "moderate", accuracy != 1) %>% nrow()
+moderate.precision <- test %>%
+  filter(ideology == "moderate") %>%
+  summarise(precision = sum(accuracy)/(sum(accuracy) + moderate.FP))
+
+#conservative
+conservative.FP <- test %>% filter(ideo.outcome == "conservative", accuracy != 1) %>% nrow()
+conservative.precision <- test %>%
+  filter(ideology == "conservative") %>%
+  summarise(precision = sum(accuracy)/(sum(accuracy) + conservative.FP))
+
+overall.precision <- bind_cols(liberal.precision,moderate.precision,conservative.precision)
+overall.precision
+
+
+## Recall
+#liberal
+liberal.FN <- test %>% filter(ideo.outcome != "liberal", accuracy != 1) %>% nrow()
+liberal.recall <- test %>%
+  filter(ideology == "liberal") %>%
+  summarise(recall = sum(accuracy)/(sum(accuracy) + liberal.FN))
+
+#moderate
+moderate.FN <- test %>% filter(ideology != "moderate", accuracy != 1) %>% nrow()
+moderate.recall <- test %>%
+  filter(ideology == "moderate") %>%
+  summarise(recall = sum(accuracy)/(sum(accuracy) + moderate.FN))
+
+#conservative
+conservative.FN <- test %>% filter(ideology != "conservative", accuracy != 1) %>% nrow()
+conservative.recall <- test %>%
+  filter(ideology == "conservative") %>%
+  summarise(recall = sum(accuracy)/(sum(accuracy) + conservative.FN))
+
+overall.recall <- bind_cols(liberal.recall,moderate.recall,conservative.recall)
+overall.recall
+
 
 cat("the accuracy of our model is", 
     100*nrow(filter(test, accuracy == 1L))/nrow(test),"%\n")
