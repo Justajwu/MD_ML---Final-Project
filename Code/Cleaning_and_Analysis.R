@@ -22,7 +22,7 @@ library(broom)
 library(data.table)
 
 
-raw_df <- read_csv("articles_df.csv")
+raw_df <- read_csv("../Data/articles_df.csv")
 data("stop_words")
 
 
